@@ -8,8 +8,7 @@ The insights can help investors make informed decisions regarding their position
 ## Features
 - **Sentiment Classification:** Identifies whether a news article's sentiment is Positive, Negative, or Neutral.
 - **Confidence Scoring:** Provides a confidence score for the sentiment classification.
-- **Trend Visualization:** Highlights sentiment trends from the text, such as mentions of risks, opportunities, or market dynamics.
-- **Actionable Recommendations:** Offers recommendations for Long, Short, or No Position based on sentiment insights.
+- **Actionable Recommendations:** Offers recommendations for Buy, Sell, or Hold based on sentiment insights.
 
 ## Technologies Used
 - **Typescript:** Core programming language for the project's frontend development.
