@@ -4,11 +4,13 @@ import {useEffect, useState} from "react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {StockModal} from "@/components/stock-modal";
 
 export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("")
   const [stockData, setStockData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedStock, setSelectedStock] = useState(null)
 
   // Grab sentiment analysis data from backend api on page load, then on interval
   useEffect(() => {
@@ -26,7 +28,7 @@ export function Dashboard() {
 
     // Interval for fetching backend api
     fetchStockData()
-    const interval = setInterval(fetchStockData, 10000) // Fetch every 10 seconds
+    const interval = setInterval(fetchStockData, 30000) // Fetch every 30 seconds
   }, []);
   if (isLoading) {
     return ("Page Loading")
@@ -62,18 +64,27 @@ export function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {filteredStocks.map((stock) => (
-                      <TableRow key={stock.ticker}>
-                        <TableCell className="font-medium">{stock.ticker}</TableCell>
+                      <TableRow className="hover:bg-muted/50" key={stock.ticker}>
+                        <TableCell className="font-medium cursor-pointer hover:font-bold" onClick={() => setSelectedStock(stock)}>{stock.ticker}</TableCell>
                         <TableCell>{stock.sentiment}</TableCell>
                         <TableCell>{stock.confidence}</TableCell>
-                        <TableCell>{stock.position}</TableCell>
+                        <TableCell className={
+                                      stock.position === 'buy' ? 'text-green-500' :
+                                      stock.position === 'sell' ? 'text-red-500' :
+                                      stock.position === 'hold' ? 'text-yellow-500' :
+                                      '' }>
+                          {stock.position}
+                        </TableCell>
                       </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-        </div>
+          {selectedStock && (
+        <StockModal isOpen={!!selectedStock} onClose={() => setSelectedStock(null)} stock={selectedStock} />
+          )}
+    </div>
     )
   }
 }
