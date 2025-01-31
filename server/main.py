@@ -12,6 +12,8 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
+FINVIZ_KEY = os.getenv("FINVIZ_API_KEY")
+
 
 def analyze_sentiment(ticker, text):
     try:
@@ -96,7 +98,7 @@ def extract_sentiment_data(ticker, text):
 
 def live_update():
     print("begin loop")
-    urls, tickers_list = retrieve_news_articles()
+    urls, tickers_list = retrieve_news_articles(FINVIZ_KEY)
     results = process_links(urls, tickers_list)
     for url, tickers, content in results:
         print(f"Processing news for: {tickers}")
@@ -107,14 +109,14 @@ def live_update():
         individual_tickers = [ticker.strip() for ticker in tickers.split(",")]
         for ticker in individual_tickers:
             print(f"Analyzing sentiment for ticker: {ticker}")
-            sentiment_result = analyze_sentiment(ticker, content)
-            print(f"Ticker: {ticker}, Sentiment Analysis:\n{sentiment_result}")
-            extract_sentiment_data(ticker, sentiment_result)
+            # sentiment_result = analyze_sentiment(ticker, content)
+            # print(f"Ticker: {ticker}, Sentiment Analysis:\n{sentiment_result}")
+            # extract_sentiment_data(ticker, sentiment_result)
             print("=" * 100)
 
 
 # live sentiment analysis
-# while True:
-#     live_update()
-#
-#     time.sleep(100)
+while True:
+    live_update()
+
+    time.sleep(100)

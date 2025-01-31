@@ -1,10 +1,12 @@
+import os
+
 import requests
 import pandas as pd
 import io
 
 
-def retrieve_news_articles():
-    url = "https://elite.finviz.com/news_export.ashx?v=3&auth=6bb955c8-93ca-45a0-ad9e-a7ec03d0a9f7"
+def retrieve_news_articles(FINVIZ_API_KEY):
+    url = f"https://elite.finviz.com/news_export.ashx?v=3&auth={FINVIZ_API_KEY}"
     response = requests.get(url)
     data = io.StringIO(response.text)
     df = pd.read_csv(data)
