@@ -2,7 +2,7 @@ import csv
 from openai import OpenAI, OpenAIError
 from dotenv import load_dotenv
 import os
-from scraper import scrape_yahoo_finance_article, process_links
+from processor import process_links, save_sentiment_data_to_db
 from test import retrieve_news_articles
 import time
 import re
@@ -23,10 +23,10 @@ def analyze_sentiment(ticker, text):
                 {
                     "role": "user",
                     "content": f"Perform a complete sentiment analysis on the following news article for {ticker}: {text}"
-                               f"Answer exactly in the following format every time :"
-                               f"- Sentiment Score: 0-1\n"
-                               f"- Confidence Score: 0-1\n"
-                               f"- Position: (buy, sell, hold)"
+                               f"Answer exactly in the following format every time :\n"
+                               f"Sentiment Score: 0-1\n"
+                               f"Confidence Score: 0-1\n"
+                               f"Position: (buy, sell, hold)"
                                f"DO NOT INCLUDE THE ANALYSIS PART."
                 }
             ]
@@ -39,7 +39,7 @@ def analyze_sentiment(ticker, text):
 
 
 def extract_sentiment_data(ticker, text):
-    pattern = r"-\s*Sentiment Score\:\s*(\d+\.\d+)\s*-*\s*- Confidence Score\:\s*(\d+\.\d+)\s*-*\s*- Position\:\s*(\w+)"
+    pattern = r"Sentiment Score:\s*(\d+\.\d+)\s*Confidence Score:\s*(\d+\.\d+)\s*Position:\s*(\w+)"
     match = re.search(pattern, text)
     if match:
         sentiment_score = float(match.group(1))
@@ -51,44 +51,47 @@ def extract_sentiment_data(ticker, text):
         print(f"Confidence Score: {confidence_score}")
         print(f"Position: {position}")
 
-        sentiment_data = {
-            "ticker": ticker,
-            "sentiment": sentiment_score,
-            "confidence": confidence_score,
-            "position": position
-        }
+        # Send the sentiment data to the database
+        save_sentiment_data_to_db(ticker, sentiment_score, confidence_score, position)
 
-        # Read existing data
-        rows = []
-        file_exists = False
-        try:
-            with open("sentiment_data.csv", mode="r") as file:
-                reader = csv.DictReader(file)
-                rows = list(reader)
-                file_exists = True
-        except FileNotFoundError:
-            pass
-
-        # Check if the ticker exists and update it, otherwise add a new row
-        ticker_found = False
-        for row in rows:
-            if row["ticker"] == ticker:
-                row.update(sentiment_data)
-                ticker_found = True
-                break
-
-        if not ticker_found:
-            rows.append(sentiment_data)
-
-        # Write updated data back to the CSV
-        with open("sentiment_data.csv", mode="w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["ticker", "sentiment", "confidence", "position"])
-            writer.writeheader()
-            writer.writerows(rows)
-
-        print(f"{'Updated' if ticker_found else 'Added'} data for {ticker}: {sentiment_data}")
-    else:
-        print(f"No match found for ticker {ticker}")
+    #     sentiment_data = {
+    #         "ticker": ticker,
+    #         "sentiment": sentiment_score,
+    #         "confidence": confidence_score,
+    #         "position": position
+    #     }
+    #
+    #     # Read existing data
+    #     rows = []
+    #     file_exists = False
+    #     try:
+    #         with open("sentiment_data.csv", mode="r") as file:
+    #             reader = csv.DictReader(file)
+    #             rows = list(reader)
+    #             file_exists = True
+    #     except FileNotFoundError:
+    #         pass
+    #
+    #     # Check if the ticker exists and update it, otherwise add a new row
+    #     ticker_found = False
+    #     for row in rows:
+    #         if row["ticker"] == ticker:
+    #             row.update(sentiment_data)
+    #             ticker_found = True
+    #             break
+    #
+    #     if not ticker_found:
+    #         rows.append(sentiment_data)
+    #
+    #     # Write updated data back to the CSV
+    #     with open("sentiment_data.csv", mode="w", newline="") as file:
+    #         writer = csv.DictWriter(file, fieldnames=["ticker", "sentiment", "confidence", "position"])
+    #         writer.writeheader()
+    #         writer.writerows(rows)
+    #
+    #     print(f"{'Updated' if ticker_found else 'Added'} data for {ticker}: {sentiment_data}")
+    # else:
+    #     print(f"No match found for ticker {ticker}")
 
 
 def live_update():
@@ -114,17 +117,4 @@ def live_update():
 # while True:
 #     live_update()
 #
-#     time.sleep(10)
-
-# content = scrape_yahoo_finance_article('https://finance.yahoo.com/news/bank-america-millionaire-maker-235000362.html')
-# tickers = 'BAC'
-# individual_tickers = [ticker.strip() for ticker in tickers.split(",")]
-# for ticker in individual_tickers:
-#     print(f"Analyzing sentiment for ticker: {ticker}")
-#     sentiment_result = analyze_sentiment(ticker, content)
-#     print(f"Ticker: {ticker}, Sentiment Analysis:\n{sentiment_result}")
-#     extract_sentiment_data(ticker, sentiment_result)
-#     print("=" * 100)
-# content = scrape_yahoo_finance_article('https://finance.yahoo.com/news/why-twilio-inc-twlo-surged-220856479.html')
-# print(analyze_sentiment("TWLO", content))
-# extract_sentiment_data(analyze_sentiment("TWLO", content))
+#     time.sleep(100)
