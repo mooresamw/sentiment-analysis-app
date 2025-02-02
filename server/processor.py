@@ -1,7 +1,6 @@
 import base64
 import csv
 import os
-
 from scraper import scrape_yahoo_finance_article
 import firebase_admin
 from firebase_admin import credentials, firestore

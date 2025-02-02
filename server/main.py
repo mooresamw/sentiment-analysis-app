@@ -1,4 +1,3 @@
-import csv
 from openai import OpenAI, OpenAIError
 from dotenv import load_dotenv
 import os
@@ -109,14 +108,14 @@ def live_update():
         individual_tickers = [ticker.strip() for ticker in tickers.split(",")]
         for ticker in individual_tickers:
             print(f"Analyzing sentiment for ticker: {ticker}")
-            # sentiment_result = analyze_sentiment(ticker, content)
-            # print(f"Ticker: {ticker}, Sentiment Analysis:\n{sentiment_result}")
-            # extract_sentiment_data(ticker, sentiment_result)
+            sentiment_result = analyze_sentiment(ticker, content)
+            print(f"Ticker: {ticker}, Sentiment Analysis:\n{sentiment_result}")
+            extract_sentiment_data(ticker, sentiment_result)
             print("=" * 100)
 
 
 # live sentiment analysis
-while True:
-    live_update()
-
-    time.sleep(100)
+# while True:
+#     live_update()
+#
+#     time.sleep(10)
