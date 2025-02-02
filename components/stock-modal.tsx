@@ -15,61 +15,63 @@ const mockPriceHistory = [
   { date: "2023-06-01", price: 170 },
 ]
 
-interface StockModalProps {
-  isOpen: boolean
-  onClose: () => void
-  stock: {
-    ticker: string
-    companyName: string
-    currentPrice: number
-    sentiment: number
-    confidence: number
-    position: string
-  }
-}
+// interface StockModalProps {
+//   isOpen: boolean
+//   onClose: () => void
+//   stock: {
+//     ticker: string
+//     companyName: string
+//     currentPrice: number
+//     sentiment: number
+//     confidence: number
+//     position: string
+//   }
+//   prices: []
+// }
 
-export function StockModal({ isOpen, onClose, stock }: StockModalProps) {
+
+export function StockModal({ isOpen, onClose, stock, prices, currentPrice, company}: any) {
   const [timeRange, setTimeRange] = useState("6M")
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>
-            {stock.ticker} - {stock.companyName}
+            {stock.ticker} - {company}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 items-center gap-4">
-            <span className="font-medium">Current Price:</span>
-            {/*<span>${stock.currentPrice.toFixed(2)}</span>*/}
+            <span className="font-medium">Current Price: ${currentPrice}</span>
             <span className="font-medium">Sentiment Score: {stock.sentiment}</span>
             <span className="font-medium">Confidence Score: {stock.confidence}</span>
             <span className="font-medium">Recommendation: {stock.position}</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <h4 className="font-semibold">Price History</h4>
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select time range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1M">1 Month</SelectItem>
-                  <SelectItem value="3M">3 Months</SelectItem>
-                  <SelectItem value="6M">6 Months</SelectItem>
-                  <SelectItem value="1Y">1 Year</SelectItem>
-                </SelectContent>
-              </Select>
+              <h4 className="font-semibold">Live Prices</h4>
+              {/*<Select value={timeRange} onValueChange={setTimeRange}>*/}
+              {/*  <SelectTrigger className="w-[180px]">*/}
+              {/*    <SelectValue placeholder="Select time range" />*/}
+              {/*  </SelectTrigger>*/}
+              {/*  <SelectContent>*/}
+              {/*    <SelectItem value="1M">1 Month</SelectItem>*/}
+              {/*    <SelectItem value="3M">3 Months</SelectItem>*/}
+              {/*    <SelectItem value="6M">6 Months</SelectItem>*/}
+              {/*    <SelectItem value="1Y">1 Year</SelectItem>*/}
+              {/*  </SelectContent>*/}
+              {/*</Select>*/}
             </div>
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockPriceHistory}>
+                <LineChart data={prices}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="price" stroke="#8884d8" />
+                  <XAxis dataKey="date" tick={false} />
+                  <YAxis domain={[Math.min(...prices.map((d: { price: any }) => d.price)) - 1, Math.max(...prices.map((d: { price: any }) => d.price)) + 1]} />
+                  <Tooltip isAnimationActive={true} />
+                  <Line type='linear' dataKey="price" stroke="#063970" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

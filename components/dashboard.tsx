@@ -11,6 +11,9 @@ export function Dashboard() {
   const [stockData, setStockData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedStock, setSelectedStock] = useState(null)
+  const [stockPrices, setStockPrices] = useState([])
+  const [companyName , setCompanyName] = useState("")
+  const [lastPrice, setLastPrice] = useState(0)
 
   // Grab sentiment analysis data from backend api on page load, then on interval
   useEffect(() => {
@@ -30,6 +33,29 @@ export function Dashboard() {
     fetchStockData()
     const interval = setInterval(fetchStockData, 30000) // Fetch every 30 seconds
   }, []);
+
+  const fetchPrices = async (ticker: string) => {
+    try {
+        const response = await fetch(`http://localhost:8080/api/ticker/${ticker}/get_period_data`, {/*mode: 'no-cors' } */})
+        const data = await response.json()
+        setStockPrices(data)
+        console.log("Fetched")
+      } catch (error) {
+      console.log("Error fetching data: ", error)
+    }
+  }
+
+  const fetchCompanyData = async (ticker: string) => {
+    try {
+        const response = await fetch(`http://localhost:8080/api/ticker/${ticker}/get_current_price`, {/*mode: 'no-cors' } */})
+        const data = await response.json()
+        setLastPrice(data.current_price)
+        setCompanyName(data.company_name)
+      } catch (error) {
+      console.log("Error fetching data: ", error)
+    }
+  }
+
   if (isLoading) {
     return ("Page Loading")
   } else {
@@ -65,7 +91,7 @@ export function Dashboard() {
                 <TableBody>
                   {filteredStocks.map((stock) => (
                       <TableRow className="hover:bg-muted/50" key={stock.ticker}>
-                        <TableCell className="font-medium cursor-pointer hover:font-bold" onClick={() => setSelectedStock(stock)}>{stock.ticker}</TableCell>
+                        <TableCell className="font-medium cursor-pointer hover:font-bold" onClick={() => {setSelectedStock(stock); fetchPrices(stock.ticker); fetchCompanyData(stock.ticker)}}>{stock.ticker}</TableCell>
                         <TableCell>{stock.sentiment}</TableCell>
                         <TableCell>{stock.confidence}</TableCell>
                         <TableCell className={
@@ -82,7 +108,7 @@ export function Dashboard() {
             </CardContent>
           </Card>
           {selectedStock && (
-        <StockModal isOpen={!!selectedStock} onClose={() => setSelectedStock(null)} stock={selectedStock} />
+        <StockModal isOpen={!!selectedStock} onClose={() => setSelectedStock(null)} stock={selectedStock} prices={stockPrices} currentPrice={lastPrice} company={companyName} />
           )}
     </div>
     )
