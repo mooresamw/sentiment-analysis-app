@@ -50,90 +50,110 @@ def save_processed_urls(new_urls_with_tickers, file_path="processed_urls.csv"):
 
 # Function to return the list of processed links from the database
 def get_processed_urls_from_db():
-    docs = db.collection('processed_urls').stream()
+    doc_ref = db.collection('metadata').document('processed_urls')
+    doc = doc_ref.get()
 
-    return [doc.to_dict().get("url") for doc in docs if "url" in doc.to_dict()]
+    if not doc.exists:
+        return set()  # Return empty set if no data exists
+
+    # Extract processed URLs from Firestore
+    processed_articles = doc.to_dict().get("processed_articles", [])
+    return {article["url"] for article in processed_articles}  # Return a set of URLs
+
+
+print(get_processed_urls_from_db())
 
 
 # Function to save urls being processed to the database. input is a list of tuples
-def save_processed_urls_to_db(news_articles_with_tickers):
-    # Reference the collection
-    # print(news_articles_with_tickers)
-    collection_ref = db.collection('processed_urls')
+def save_processed_urls_to_db(news_articles):
+    doc_ref = db.collection('metadata').document('processed_urls')
+    doc = doc_ref.get()
 
-    # Add new URLs and tickers
-    for url, ticker in news_articles_with_tickers:
-        encoded_url = encode_url(url)
-        doc_ref = collection_ref.add({"tickers": ticker, "url": url})
+    # Retrieve existing data from Firestore
+    existing_data = doc.to_dict().get("processed_articles", []) if doc.exists else []
 
-        #doc_ref.set({"tickers": ticker, "url": url})
+    # Create a set of existing URLs for quick lookup (avoid duplicates)
+    existing_urls = {article["url"] for article in existing_data}
+
+    # Append new articles if not already processed
+    for url, ticker, timestamp, category in news_articles:
+        if url not in existing_urls:
+            existing_data.append({
+                "url": url,
+                "ticker": ticker,
+                "timestamp": timestamp,
+                "category": category
+            })
+
+    # Save back to Firestore
+    doc_ref.set({"processed_articles": existing_data})  # Overwrite document
 
 
-# Function to process only new article urls
-def process_links(urls, tickers):
-    if len(urls) != len(tickers):
-        raise ValueError("The length of URLs and Tickers must be the same.")
+# Function to process only new article URLs and save to Firestore
+def process_links(urls, tickers, dates, categories):
+    if not (len(urls) == len(tickers) == len(dates) == len(categories)):
+        raise ValueError("The length of URLs, Tickers, Dates, and Categories must be the same.")
 
-    # Combine URLs and tickers into a list of tuples
-    urls_with_tickers = list(zip(urls, tickers))
-
-    # Get previously processed URLs and tickers
+    # Get set of previously processed URLs to avoid re-processing
     processed_urls = get_processed_urls_from_db()
-    new_urls_with_tickers = []
+    new_articles = []
     article_contents = []
 
-    for url, ticker in urls_with_tickers:
-        if url not in processed_urls:
+    # Process only new articles
+    for url, ticker, date, category in zip(urls, tickers, dates, categories):
+        if url not in processed_urls:  # Now this is a fast lookup in the set
             try:
-                # Extract content for new URLs only
+                # Scrape Yahoo Finance article
                 is_mobile = '/m/' in url
                 content = scrape_yahoo_finance_article(url, is_mobile)
+
+                # Store new articles in the list
                 article_contents.append((url, ticker, content))
-                new_urls_with_tickers.append((url, ticker))
+                new_articles.append((url, ticker, date, category))  # Include timestamp & category
             except Exception as e:
                 article_contents.append((url, ticker, str(e)))
 
-    # Save new URLs and tickers to the CSV file after processing
-    if new_urls_with_tickers:
-        save_processed_urls_to_db(new_urls_with_tickers)
+    # Save only new articles to Firestore
+    if new_articles:
+        save_processed_urls_to_db(new_articles)
 
     return article_contents
 
 
 # Function to retrieve the sentiment data from Firestore database
 def get_sentiment_data_from_db():
-    collection_ref = db.collection('sentiment_data')
-    docs = collection_ref.stream()
+    doc_ref = db.collection('metadata').document('sentiment_data')
+    doc = doc_ref.get()
 
-    data = []
-    for doc in docs:
-        sentiment = doc.to_dict()
-        data.append(sentiment)
-    return data
+    return doc.to_dict().get("sentiment_data", []) if doc.exists else []
 
 
 # Function to save sentiment data gathered to our Firestore database
 def save_sentiment_data_to_db(ticker, sentiment_score, confidence_score, position):
-    # Define the sentiment data
-    sentiment_data = {
-        "ticker": ticker,
-        "sentiment": sentiment_score,
-        "confidence": confidence_score,
-        "position": position
-    }
-
-    # Reference to the collection in Firestore
-    collection_ref = db.collection('sentiment_data')
-
-    # Check if the ticker already exists in Firestore
-    doc_ref = collection_ref.document(ticker)
+    doc_ref = db.collection('metadata').document('sentiment_data')
     doc = doc_ref.get()
 
-    if doc.exists:
-        # Update the existing document if the ticker is found
-        doc_ref.update(sentiment_data)
-        print(f"Updated data for {ticker}: {sentiment_data}")
-    else:
-        # Add a new document if the ticker does not exist
-        doc_ref.set(sentiment_data)
-        print(f"Added data for {ticker}: {sentiment_data}")
+    existing_data = doc.to_dict().get("sentiment_data", []) if doc.exists else []
+
+    # Check if ticker already exists, and update it
+    updated = False
+    for entry in existing_data:
+        if entry["ticker"] == ticker:
+            entry.update({
+                "sentiment": sentiment_score,
+                "confidence": confidence_score,
+                "position": position
+            })
+            updated = True
+            break
+
+    # If ticker doesn't exist, add a new entry
+    if not updated:
+        existing_data.append({
+            "ticker": ticker,
+            "sentiment": sentiment_score,
+            "confidence": confidence_score,
+            "position": position
+        })
+
+    doc_ref.set({"sentiment_data": existing_data})
