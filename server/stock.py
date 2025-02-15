@@ -34,21 +34,32 @@ def get_stock_info(ticker):
 
 # Function to get stock price for ticker at a given time
 def get_stock_price_at_time(ticker, timestamp):
-    # Convert timestamp string to datetime object
+    # Convert timestamp string to datetime object (assume input is in EST)
     target_time = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
-    # Download historical minute-level data for the day
-    stock_data = yf.download(ticker, start=target_time.date(), end=target_time.date() + datetime.timedelta(days=1),
-                             interval="1m")
+    # Download historical data with pre/post-market included
+    stock_data = yf.download(
+        ticker,
+        start=target_time.date() - datetime.timedelta(days=1),  # Include previous day for pre-market
+        end=target_time.date() + datetime.timedelta(days=1),    # Include next day for after-hours
+        interval="1m",
+        prepost=True,  # Include pre-market & after-hours data
+        progress=False
+    )
 
     if stock_data.empty:
         return None  # No data available
 
-    # Convert index (which is in UTC) to a pandas DatetimeIndex for comparison
-    stock_data.index = stock_data.index.tz_localize(None)
+    # Convert the index (which is in UTC) to Eastern Time (ET)
+    stock_data.index = stock_data.index.tz_convert("US/Eastern")
+
+    # Convert target_time to ET (assuming input is in EST)
+    target_time = target_time.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))  # EST offset
 
     # Find the closest available time
     closest_time = min(stock_data.index, key=lambda x: abs(x - target_time))
 
-    # Return the price at the closest timestamp
-    return stock_data.loc[closest_time, "Close"], closest_time
+    # Return just the stock price at that timestamp
+    return stock_data.loc[closest_time, "Close"].iloc[0]
+
+# print(get_stock_price_at_time("META", "2025-02-14 10:43:00"))
