@@ -1,36 +1,28 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import {useState} from "react"
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog"
+import {CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts"
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
-// Mock data for the stock price history
-const mockPriceHistory = [
-  { date: "2023-01-01", price: 150 },
-  { date: "2023-02-01", price: 155 },
-  { date: "2023-03-01", price: 160 },
-  { date: "2023-04-01", price: 158 },
-  { date: "2023-05-01", price: 165 },
-  { date: "2023-06-01", price: 170 },
+// Mock data for recent news articles
+const mockRecentNews = [
+  {
+    title: "Company XYZ Announces Record Profits",
+    url: "https://example.com/article1",
+    date: "2023-06-15",
+    priceAtRelease: 168.5,
+  },
+  {
+    title: "New Product Launch Boosts Stock",
+    url: "https://example.com/article2",
+    date: "2023-06-10",
+    priceAtRelease: 165.75,
+  },
 ]
 
-// interface StockModalProps {
-//   isOpen: boolean
-//   onClose: () => void
-//   stock: {
-//     ticker: string
-//     companyName: string
-//     currentPrice: number
-//     sentiment: number
-//     confidence: number
-//     position: string
-//   }
-//   prices: []
-// }
 
-
-export function StockModal({ isOpen, onClose, stock, prices, currentPrice, company}: any) {
+export function StockModal({ isOpen, onClose, stock, prices, currentPrice, company, recentNews}: any) {
   const [timeRange, setTimeRange] = useState("6M")
 
 
@@ -76,6 +68,53 @@ export function StockModal({ isOpen, onClose, stock, prices, currentPrice, compa
               </ResponsiveContainer>
             </div>
           </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent News</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {recentNews.map((article: any, index: any) => {
+                  // Format timestamp to a readable date
+                  const formattedDate = new Date(article.timestamp).toLocaleString();
+
+                  // Extract tickers (convert comma-separated string into an array)
+                  const tickers = article.ticker.split(",");
+
+                  // Get prices for each ticker and format them
+                  const priceList = tickers
+                    .map((ticker: string) => {
+                      const price = article.prices_at_date?.[ticker]; // Get price if exists
+                      return price ? `${ticker}: $${price.toFixed(2)}` : null;
+                    })
+                    .filter(Boolean) // Remove null values
+
+                  // Determine the relevant ticker dynamically (assuming it's the first ticker in the list)
+                  const selectedTicker = tickers.find((t: string) => stock.ticker === t);
+
+                  // Get price for the specific ticker
+                  const price = selectedTicker ? article.prices_at_date[selectedTicker] : null;
+                  const formattedPrice = price !== null ? `$${price.toFixed(2)}` : "N/A";
+
+                  return (
+                    <li key={index} className="text-sm">
+                      <a
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        {article.title}
+                      </a>
+                      <p className="text-gray-600">
+                        Date: {formattedDate} | Price at release: {priceList.length > 0 ? formattedPrice : "N/A"}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </DialogContent>
     </Dialog>
