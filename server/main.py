@@ -47,58 +47,15 @@ def extract_sentiment_data(ticker, text):
         confidence_score = float(match.group(2))
         position = match.group(3)
 
-        # Store or use the extracted data
-        print(f"Sentiment Score: {sentiment_score}")
-        print(f"Confidence Score: {confidence_score}")
-        print(f"Position: {position}")
-
         # Send the sentiment data to the database
         save_sentiment_data_to_db(ticker, sentiment_score, confidence_score, position)
 
-    #     sentiment_data = {
-    #         "ticker": ticker,
-    #         "sentiment": sentiment_score,
-    #         "confidence": confidence_score,
-    #         "position": position
-    #     }
-    #
-    #     # Read existing data
-    #     rows = []
-    #     file_exists = False
-    #     try:
-    #         with open("sentiment_data.csv", mode="r") as file:
-    #             reader = csv.DictReader(file)
-    #             rows = list(reader)
-    #             file_exists = True
-    #     except FileNotFoundError:
-    #         pass
-    #
-    #     # Check if the ticker exists and update it, otherwise add a new row
-    #     ticker_found = False
-    #     for row in rows:
-    #         if row["ticker"] == ticker:
-    #             row.update(sentiment_data)
-    #             ticker_found = True
-    #             break
-    #
-    #     if not ticker_found:
-    #         rows.append(sentiment_data)
-    #
-    #     # Write updated data back to the CSV
-    #     with open("sentiment_data.csv", mode="w", newline="") as file:
-    #         writer = csv.DictWriter(file, fieldnames=["ticker", "sentiment", "confidence", "position"])
-    #         writer.writeheader()
-    #         writer.writerows(rows)
-    #
-    #     print(f"{'Updated' if ticker_found else 'Added'} data for {ticker}: {sentiment_data}")
-    # else:
-    #     print(f"No match found for ticker {ticker}")
 
-
+# live updating loop
 def live_update():
     print("begin loop")
-    urls, tickers_list = retrieve_news_articles(FINVIZ_KEY)
-    results = process_links(urls, tickers_list)
+    titles, urls, tickers_list, dates, categories = retrieve_news_articles(FINVIZ_KEY)
+    results = process_links(titles, urls, tickers_list, dates, categories)
     for url, tickers, content in results:
         print(f"Processing news for: {tickers}")
         print(f"{tickers}: {url} \n {content[:200]}...")
@@ -115,7 +72,7 @@ def live_update():
 
 
 # live sentiment analysis
-# while True:
-#     live_update()
-#
-#     time.sleep(10)
+while True:
+    live_update()
+
+    time.sleep(10)
