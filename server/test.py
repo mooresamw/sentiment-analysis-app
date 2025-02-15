@@ -14,7 +14,7 @@ def retrieve_news_articles(FINVIZ_API_KEY):
 
     # print("Retrieved Columns:", df.columns.tolist())
     # print("First few rows:\n", df.head())
-    expected_columns = {"Url", "Ticker", "Date", "Category"}
+    expected_columns = {"Title", "Url", "Ticker", "Date", "Category"}
     if not expected_columns.issubset(df.columns):
         raise KeyError("One or more expected columns are missing. Check API Key.")
 
@@ -22,9 +22,10 @@ def retrieve_news_articles(FINVIZ_API_KEY):
     filtered_df = df[df["Url"].str.contains("finance.yahoo", na=False)]
 
     # Extract individual lists
+    titles = filtered_df["Title"].tolist()
     urls = filtered_df["Url"].tolist()
     tickers = filtered_df["Ticker"].tolist()
     dates = filtered_df["Date"].tolist()
     categories = filtered_df["Category"].tolist()
 
-    return urls, tickers, dates, categories
+    return titles, urls, tickers, dates, categories
