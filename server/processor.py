@@ -134,7 +134,8 @@ def process_links(titles, urls, tickers, dates, categories):
 
                 # Store new articles in the list
                 article_contents.append((url, ticker, content))
-                new_articles.append((title, url, ticker, date, category, prices_at_date))  # Store new articles in the list
+                new_articles.append(
+                    (title, url, ticker, date, category, prices_at_date))  # Store new articles in the list
             except Exception as e:
                 article_contents.append((url, ticker, str(e)))
 
@@ -182,3 +183,38 @@ def save_sentiment_data_to_db(ticker, sentiment_score, confidence_score, positio
         })
 
     doc_ref.set({"sentiment_data": existing_data})
+
+
+# Function to fetch the two most recent news articles for a ticker from the database
+def get_recent_news_articles(ticker, limit=2):
+    doc_ref = db.collection('metadata').document('processed_urls')
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return []
+
+    # Extract articles and filter by the given ticker
+    processed_articles = doc.to_dict().get("processed_articles", [])
+
+    filtered_articles = []
+    for article in processed_articles:
+        article_tickers = article.get("ticker", "")
+
+        # Convert the ticker field to a list
+        if isinstance(article_tickers, str):
+            ticker_list = article_tickers.split(",")  # Split if it's a CSV string
+        else:
+            ticker_list = [article_tickers]  # Handle unexpected non-string cases
+
+        # Check if the requested ticker is in the list
+        if ticker in ticker_list:
+            filtered_articles.append(article)
+
+    if not filtered_articles:
+        return []
+
+    # Sort by timestamp (most recent first)
+    filtered_articles.sort(key=lambda x: datetime.datetime.strptime(x["timestamp"], "%Y-%m-%d %H:%M:%S"), reverse=True)
+
+    # Return the most recent articles up to the specified limit
+    return filtered_articles[:limit]
