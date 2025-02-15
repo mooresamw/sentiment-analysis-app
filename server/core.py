@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from processor import get_sentiment_data_from_db
+from processor import get_sentiment_data_from_db, get_recent_news_articles
 from main import live_update
 from stock import get_ticker_current_price, get_period_data, get_stock_info
 
@@ -31,6 +31,17 @@ def get_current_price(ticker: str):
 def get_prices(ticker: str):
     data = get_period_data(ticker, '1d')
     return jsonify(data)
+
+
+# API endpoint to fetch the two most recent news articles for a ticker from the database
+@app.route('/api/ticker/<ticker>/get_recent_news', methods=['GET'])
+def get_recent_news(ticker):
+    recent_articles = get_recent_news_articles(ticker)
+
+    if not recent_articles:
+        return jsonify({"error": f"No news articles found for {ticker}"}), 404
+
+    return jsonify(recent_articles), 200
 
 
 # Run the Flask server
