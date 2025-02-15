@@ -1,7 +1,9 @@
 import base64
 import csv
+import datetime
 import os
 from scraper import scrape_yahoo_finance_article
+from stock import get_stock_price_at_time
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -61,7 +63,20 @@ def get_processed_urls_from_db():
     return {article["url"] for article in processed_articles}  # Return a set of URLs
 
 
-print(get_processed_urls_from_db())
+# Function to clean articles older than a day
+def clean_old_articles(existing_data):
+    now = datetime.datetime.utcnow()  # Get current time in UTC
+
+    cleaned_data = []
+    for article in existing_data:
+        try:
+            article_time = datetime.datetime.strptime(article["timestamp"], "%Y-%m-%d %H:%M:%S")
+            if (now - article_time).total_seconds() <= 86400:  # 86400 seconds = 1 day
+                cleaned_data.append(article)  # Keep only recent articles
+        except ValueError:
+            continue  # Skip articles with invalid timestamps
+
+    return cleaned_data
 
 
 # Function to save urls being processed to the database. input is a list of tuples
@@ -72,17 +87,22 @@ def save_processed_urls_to_db(news_articles):
     # Retrieve existing data from Firestore
     existing_data = doc.to_dict().get("processed_articles", []) if doc.exists else []
 
+    # Clean up old articles before adding new ones
+    existing_data = clean_old_articles(existing_data)
+
     # Create a set of existing URLs for quick lookup (avoid duplicates)
     existing_urls = {article["url"] for article in existing_data}
 
     # Append new articles if not already processed
-    for url, ticker, timestamp, category in news_articles:
+    for title, url, ticker, timestamp, category, prices_at_date in news_articles:
         if url not in existing_urls:
             existing_data.append({
+                "title": title,
                 "url": url,
                 "ticker": ticker,
                 "timestamp": timestamp,
-                "category": category
+                "category": category,
+                "prices_at_date": prices_at_date
             })
 
     # Save back to Firestore
@@ -90,9 +110,9 @@ def save_processed_urls_to_db(news_articles):
 
 
 # Function to process only new article URLs and save to Firestore
-def process_links(urls, tickers, dates, categories):
-    if not (len(urls) == len(tickers) == len(dates) == len(categories)):
-        raise ValueError("The length of URLs, Tickers, Dates, and Categories must be the same.")
+def process_links(titles, urls, tickers, dates, categories):
+    if not (len(titles) == len(urls) == len(tickers) == len(dates) == len(categories)):
+        raise ValueError("The length of Titles, URLs, Tickers, Dates, and Categories must be the same.")
 
     # Get set of previously processed URLs to avoid re-processing
     processed_urls = get_processed_urls_from_db()
@@ -100,16 +120,21 @@ def process_links(urls, tickers, dates, categories):
     article_contents = []
 
     # Process only new articles
-    for url, ticker, date, category in zip(urls, tickers, dates, categories):
+    for title, url, ticker, date, category in zip(titles, urls, tickers, dates, categories):
         if url not in processed_urls:  # Now this is a fast lookup in the set
             try:
                 # Scrape Yahoo Finance article
                 is_mobile = '/m/' in url
                 content = scrape_yahoo_finance_article(url, is_mobile)
+                price_at_date = get_stock_price_at_time(ticker, date)  # Get price at the article's timestamp
+
+                # Handle multiple tickers
+                ticker_list = ticker.split(",")  # Split string into individual tickers
+                prices_at_date = {t: get_stock_price_at_time(t, date) for t in ticker_list}
 
                 # Store new articles in the list
                 article_contents.append((url, ticker, content))
-                new_articles.append((url, ticker, date, category))  # Include timestamp & category
+                new_articles.append((title, url, ticker, date, category, prices_at_date))  # Store new articles in the list
             except Exception as e:
                 article_contents.append((url, ticker, str(e)))
 
