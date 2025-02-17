@@ -40,7 +40,7 @@ def get_stock_price_at_time(ticker, timestamp):
     # Download historical data with pre/post-market included
     stock_data = yf.download(
         ticker,
-        start=target_time.date() - datetime.timedelta(days=1),  # Include previous day for pre-market
+        start=target_time.date() - datetime.timedelta(days=3),  # Include previous day for pre-market
         end=target_time.date() + datetime.timedelta(days=1),    # Include next day for after-hours
         interval="1m",
         prepost=True,  # Include pre-market & after-hours data
