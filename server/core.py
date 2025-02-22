@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from processor import get_sentiment_data_from_db, get_recent_news_articles
+from processor import get_sentiment_data_from_db, get_recent_news_articles, get_all_price_changes, \
+    calculate_average_price_changes
 from main import live_update
 from stock import get_ticker_current_price, get_period_data, get_stock_info
 
@@ -13,10 +14,17 @@ CORS(app)
 @app.route('/api/', methods=['GET'])
 def get_analysis():
     live_update()
-    # with open("sentiment_data.csv", mode="r") as file:
-    #     reader = csv.DictReader(file)
-    #     rows = list(reader)
-    return jsonify(get_sentiment_data_from_db())
+    response_data = get_sentiment_data_from_db()
+
+    # Get average price changes
+    price_changes = calculate_average_price_changes(get_all_price_changes())
+
+    # Add price change data to response
+    for item in response_data:
+        ticker = item.get("ticker")
+        item["price_change"] = price_changes.get(ticker, 0.0)  # Default to 0.0 if no data
+
+    return jsonify(response_data)
 
 
 # Api route to get the current price of a ticker
