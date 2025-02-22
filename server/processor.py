@@ -2,8 +2,10 @@ import base64
 import csv
 import datetime
 import os
+from collections import defaultdict
+
 from scraper import scrape_yahoo_finance_article
-from stock import get_stock_price_at_time
+from stock import get_stock_price_at_time, get_stock_price_change
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -94,7 +96,7 @@ def save_processed_urls_to_db(news_articles):
     existing_urls = {article["url"] for article in existing_data}
 
     # Append new articles if not already processed
-    for title, url, ticker, timestamp, category, prices_at_date in news_articles:
+    for title, url, ticker, timestamp, category, prices_at_date, price_changes in news_articles:
         if url not in existing_urls:
             existing_data.append({
                 "title": title,
@@ -102,7 +104,8 @@ def save_processed_urls_to_db(news_articles):
                 "ticker": ticker,
                 "timestamp": timestamp,
                 "category": category,
-                "prices_at_date": prices_at_date
+                "prices_at_date": prices_at_date,
+                "price_changes": price_changes,
             })
 
     # Save back to Firestore
@@ -126,16 +129,16 @@ def process_links(titles, urls, tickers, dates, categories):
                 # Scrape Yahoo Finance article
                 is_mobile = '/m/' in url
                 content = scrape_yahoo_finance_article(url, is_mobile)
-                price_at_date = get_stock_price_at_time(ticker, date)  # Get price at the article's timestamp
 
                 # Handle multiple tickers
                 ticker_list = ticker.split(",")  # Split string into individual tickers
                 prices_at_date = {t: get_stock_price_at_time(t, date) for t in ticker_list}
-
+                price_changes = {t: get_stock_price_change(t, date) for t in ticker_list}
                 # Store new articles in the list
                 article_contents.append((url, ticker, content))
                 new_articles.append(
-                    (title, url, ticker, date, category, prices_at_date))  # Store new articles in the list
+                    (title, url, ticker, date, category, prices_at_date,
+                     price_changes))  # Store new articles in the list
             except Exception as e:
                 article_contents.append((url, ticker, str(e)))
 
@@ -218,3 +221,31 @@ def get_recent_news_articles(ticker, limit=2):
 
     # Return the most recent articles up to the specified limit
     return filtered_articles[:limit]
+
+
+def get_all_price_changes():
+    """Fetches the price change document containing the list of stock price changes."""
+    doc_ref = db.collection("metadata").document("processed_urls")  # Adjust collection/doc name
+    doc = doc_ref.get()
+
+    if doc.exists:
+        data = doc.to_dict().get("processed_articles", [])
+        return [article.get("price_changes", {}) for article in data]
+    return []
+
+
+def calculate_average_price_changes(data):
+    """Calculates the average price change for each ticker."""
+    ticker_prices = defaultdict(list)
+
+    # Collect all prices for each ticker
+    for price_dict in data:
+        for ticker, price in price_dict.items():
+            if price is not None:  # Ignore None values
+                ticker_prices[ticker].append(price)
+
+    # Compute the average for each ticker
+    average_price_changes = {ticker: sum(prices) / len(prices) for ticker, prices in ticker_prices.items()}
+
+    return average_price_changes
+

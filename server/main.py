@@ -71,8 +71,8 @@ def live_update():
             print("=" * 100)
 
 
-# live sentiment analysis
-while True:
-    live_update()
-
-    time.sleep(10)
+# # live sentiment analysis
+# while True:
+#     live_update()
+#
+#     time.sleep(10)
