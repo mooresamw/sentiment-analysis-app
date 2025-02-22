@@ -22,6 +22,7 @@ export function Dashboard() {
   const [lastPrice, setLastPrice] = useState(0)
   const [sortOrder, setSortOrder] = useState("default")
   const [recentNews, setRecentNews] = useState([])
+  const [priceChangeThreshold, setPriceChangeThreshold] = useState("")
 
   // Grab sentiment analysis data from backend api on page load, then on interval
   useEffect(() => {
@@ -80,13 +81,18 @@ export function Dashboard() {
   if (isLoading) {
     return (<Loading />);
   } else {
-    let filteredStocks = stockData
+    const filteredStocks = stockData
       .filter((stock) => stock.ticker.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter((stock) => {
+        if (priceChangeThreshold === "") return true
+        const threshold = Number.parseFloat(priceChangeThreshold)
+        const priceChange = Number.parseFloat(stock.price_change)
+        return threshold >= 0 ? priceChange >= threshold : priceChange <= threshold
+      })
       .sort((a, b) => {
-              if (sortOrder === "default") return 0 // Keep original order
-              return sortOrder === "desc" ? b.sentiment - a.sentiment : a.sentiment - b.sentiment
-            })
-    //let filteredStocks = stockData.filter((stock) => stock.ticker.toLowerCase().includes(searchTerm.toLowerCase()))
+        if (sortOrder === "default") return 0
+        return sortOrder === "desc" ? b.sentiment - a.sentiment : a.sentiment - b.sentiment
+      })
     return (
         <div className="container mx-auto py-10">
           <Card>
@@ -103,6 +109,13 @@ export function Dashboard() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
+                />
+                <Input
+                  type="number"
+                  placeholder="Price change threshold..."
+                  value={priceChangeThreshold}
+                  onChange={(e) => setPriceChangeThreshold(e.target.value)}
+                  className="max-w-sm"
                 />
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -125,6 +138,7 @@ export function Dashboard() {
                     <TableHead>Ticker</TableHead>
                     <TableHead>Sentiment Score</TableHead>
                     <TableHead>Confidence Score</TableHead>
+                    <TableHead>Average Price Change</TableHead>
                     <TableHead>Recommendation</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -137,6 +151,7 @@ export function Dashboard() {
                         >{stock.ticker}</TableCell>
                         <TableCell>{stock.sentiment}</TableCell>
                         <TableCell>{stock.confidence}</TableCell>
+                        <TableCell>{stock.price_change}</TableCell>
                         <TableCell className={
                                       stock.position === 'buy' ? 'text-green-500' :
                                       stock.position === 'sell' ? 'text-red-500' :
