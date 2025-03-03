@@ -5,26 +5,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts"
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
-// Mock data for recent news articles
-const mockRecentNews = [
-  {
-    title: "Company XYZ Announces Record Profits",
-    url: "https://example.com/article1",
-    date: "2023-06-15",
-    priceAtRelease: 168.5,
-  },
-  {
-    title: "New Product Launch Boosts Stock",
-    url: "https://example.com/article2",
-    date: "2023-06-10",
-    priceAtRelease: 165.75,
-  },
-]
-
-
 export function StockModal({ isOpen, onClose, stock, prices, currentPrice, company, recentNews}: any) {
-  const [timeRange, setTimeRange] = useState("6M")
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

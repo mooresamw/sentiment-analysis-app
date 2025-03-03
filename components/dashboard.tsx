@@ -138,7 +138,7 @@ export function Dashboard() {
                     <TableHead>Ticker</TableHead>
                     <TableHead>Sentiment Score</TableHead>
                     <TableHead>Confidence Score</TableHead>
-                    <TableHead>Average Price Change</TableHead>
+                    <TableHead>Price Change (%) From Most Recent News</TableHead>
                     <TableHead>Recommendation</TableHead>
                   </TableRow>
                 </TableHeader>
