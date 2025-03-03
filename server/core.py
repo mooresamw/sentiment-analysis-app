@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from processor import get_sentiment_data_from_db, get_recent_news_articles, get_all_price_changes, \
-    calculate_average_price_changes
+    calculate_average_price_changes, get_most_recent_price_change
 from main import live_update
 from stock import get_ticker_current_price, get_period_data, get_stock_info
 
@@ -17,12 +17,15 @@ def get_analysis():
     response_data = get_sentiment_data_from_db()
 
     # Get average price changes
-    price_changes = calculate_average_price_changes(get_all_price_changes())
+    # price_changes = calculate_average_price_changes(get_all_price_changes())
 
     # Add price change data to response
     for item in response_data:
         ticker = item.get("ticker")
-        item["price_change"] = price_changes.get(ticker, 0.0)  # Default to 0.0 if no data
+        #item["price_change"] = price_changes.get(ticker, 0.0)  # Default to 0.0 if no data
+
+        # Grab the most recent price change for the ticker which will update when new articles are processed
+        item["price_change"] = get_most_recent_price_change(ticker)
 
     return jsonify(response_data)
 

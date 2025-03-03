@@ -220,7 +220,20 @@ def get_recent_news_articles(ticker, limit=2):
     filtered_articles.sort(key=lambda x: datetime.datetime.strptime(x["timestamp"], "%Y-%m-%d %H:%M:%S"), reverse=True)
 
     # Return the most recent articles up to the specified limit
-    return filtered_articles[:limit]
+    return filtered_articles
+
+
+# Function to fetch the most recent price change for the given ticker
+def get_most_recent_price_change(ticker):
+    articles = get_recent_news_articles(ticker, limit=1)  # Get the latest news article
+
+    if not articles:
+        return None  # No articles found for the ticker
+
+    latest_article = articles[0]  # The most recent article
+    price_change = latest_article.get("price_changes", {}).get(ticker, None)  # Extract price change
+
+    return price_change  # Returns a float value or None if not found
 
 
 def get_all_price_changes():
